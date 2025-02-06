@@ -1,0 +1,127 @@
+import calendar
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+import pickle
+from datetime import datetime
+
+class CalendarReminderApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Calendar and Reminder App")
+
+        self.current_year = datetime.now().year
+        self.current_month = datetime.now().month
+
+        self.reminders = self.load_reminders()
+
+        # Header
+        self.header_label = tk.Label(self.root, text="", font=("Helvetica", 16))
+        self.header_label.pack(pady=10)
+
+        # Calendar Display
+        self.calendar_frame = tk.Frame(self.root)
+        self.calendar_frame.pack()
+
+        # Navigation Buttons
+        nav_frame = tk.Frame(self.root)
+        nav_frame.pack(pady=10)
+
+        prev_btn = tk.Button(nav_frame, text="<< Previous Month", command=self.prev_month)
+        prev_btn.grid(row=0, column=0)
+
+        next_btn = tk.Button(nav_frame, text="Next Month >>", command=self.next_month)
+        next_btn.grid(row=0, column=1)
+
+        self.update_calendar()
+
+    def load_reminders(self):
+        """Load reminders from file."""
+        try:
+            with open("reminders.pkl", "rb") as file:
+                return pickle.load(file)
+        except (FileNotFoundError, EOFError):
+            return {}
+
+    def save_reminders(self):
+        """Save reminders to file."""
+        with open("reminders.pkl", "wb") as file:
+            pickle.dump(self.reminders, file)
+
+    def update_calendar(self):
+        """Update the calendar display."""
+        # Clear previous calendar
+        for widget in self.calendar_frame.winfo_children():
+            widget.destroy()
+
+        self.header_label.config(text=f"{calendar.month_name[self.current_month]} {self.current_year}")
+
+        # Create calendar grid
+        cal = calendar.Calendar()
+        days = list(cal.itermonthdays(self.current_year, self.current_month))
+
+        # Display day names
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        for col, day_name in enumerate(day_names):
+            tk.Label(self.calendar_frame, text=day_name, font=("Helvetica", 10, "bold")).grid(row=0, column=col)
+
+        # Display days
+        row = 1
+        col = 0
+        for day in days:
+            if day == 0:  # Empty day
+                col += 1
+                continue
+
+            day_btn = tk.Button(self.calendar_frame, text=str(day), width=4,
+                                 command=lambda d=day: self.manage_reminder(d))
+            day_btn.grid(row=row, column=col)
+
+            # Highlight days with reminders
+            date_key = f"{self.current_year}-{self.current_month:02d}-{day:02d}"
+            if date_key in self.reminders:
+                day_btn.config(bg="lightblue")
+
+            col += 1
+            if col > 6:
+                col = 0
+                row += 1
+
+    def manage_reminder(self, day):
+        """Manage reminders for a selected date."""
+        date_key = f"{self.current_year}-{self.current_month:02d}-{day:02d}"
+        
+        existing_reminder = self.reminders.get(date_key, "No reminders for this date.")
+        reminder_message = f"Date: {date_key}\n\nExisting reminder: {existing_reminder}"
+        
+        response = messagebox.askquestion("Reminder", f"{reminder_message}\n\nDo you want to add/update a reminder?")
+        if response == "yes":
+            new_reminder = simpledialog.askstring("Add/Update Reminder", "Enter your reminder:")
+            if new_reminder:
+                self.reminders[date_key] = new_reminder
+                self.save_reminders()
+                self.update_calendar()
+                messagebox.showinfo("Success", "Reminder saved successfully!")
+
+    def prev_month(self):
+        """Show the previous month."""
+        if self.current_month == 1:
+            self.current_month = 12
+            self.current_year -= 1
+        else:
+            self.current_month -= 1
+        self.update_calendar()
+
+    def next_month(self):
+        """Show the next month."""
+        if self.current_month == 12:
+            self.current_month = 1
+            self.current_year += 1
+        else:
+            self.current_month += 1
+        self.update_calendar()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CalendarReminderApp(root)
+    root.mainloop()
