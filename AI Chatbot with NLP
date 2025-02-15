@@ -1,0 +1,37 @@
+import nltk
+import random
+import spacy
+from nltk.tokenize import word_tokenize
+from nltk.chat.util import Chat, reflections
+
+# Load Spacy NLP model
+nlp = spacy.load("en_core_web_sm")
+
+# Define chatbot responses using pairs of patterns and responses
+pairs = [
+    [r"hi|hello|hey", ["Hello!", "Hey there!", "Hi, how can I help you?"]],
+    [r"how are you", ["I'm just a bot, but I'm doing well!", "I'm here to assist you!"]],
+    [r"what is your name", ["I'm an AI chatbot.", "Call me ChatBot!"]],
+    [r"(.*) your name", ["I am called ChatBot."]],
+    [r"(.*) help (.*)", ["I can assist you with general queries. How can I help?"]],
+    [r"quit|bye", ["Goodbye! Have a great day!", "Bye! Take care!"]],
+    [r"(.*)", ["I'm not sure how to answer that. Could you rephrase it?"]]
+]
+
+# Initialize chatbot
+chatbot = Chat(pairs, reflections)
+
+def get_response(user_input):
+    doc = nlp(user_input)
+    tokens = [token.text for token in doc]
+    return chatbot.respond(" ".join(tokens))
+
+if __name__ == "__main__":
+    print("ChatBot: Hello! Type 'quit' to exit.")
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() in ['quit', 'bye']:
+            print("ChatBot: Goodbye!")
+            break
+        response = get_response(user_input)
+        print("ChatBot:", response)
